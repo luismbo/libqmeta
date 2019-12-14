@@ -1,3 +1,5 @@
+;;;; -*- indent-tabs-mode: nil -*-
+
 (defpackage :libqmeta
   (:use :cl :cffi))
 
@@ -7,7 +9,7 @@
 (progn
   (ql:quickload :cffi)
   (setf (uiop:getenv "PATH")
-	(format nil "D:\\opt\\Qt\\5.12.6\\mingw73_64\\bin;~a" (uiop:getenv "PATH")))
+        (format nil "D:\\opt\\Qt\\5.12.6\\mingw73_64\\bin;~a" (uiop:getenv "PATH")))
   (cffi:load-foreign-library "D:/opt/Qt/5.12.6/mingw73_64/bin/Qt5Cored.dll")
   (cffi:load-foreign-library "D:/opt/Qt/5.12.6/mingw73_64/bin/Qt5Widgetsd.dll")
   (cffi:load-foreign-library "Z:/src/qt-projects/build-libqmetaobject-Desktop_Qt_5_12_6_MinGW_64_bit-Debug/debug/libqmetaobject.dll"))
@@ -71,11 +73,11 @@
   (mapc (lambda (arg) (check-type arg string)) args)
   (let* ((args (coerce args 'simple-vector))
          (argv
-	   ;; Memory leak: This array must not be freed earlier than the
-	   ;; QApplication.  Let's just leak it.
+           ;; Memory leak: This array must not be freed earlier than the
+           ;; QApplication.  Let's just leak it.
            (string-vector-to-char** args))
          (&argc
-	   ;; Apparently this, too, needs to have extent for more than the ctor.
+           ;; Apparently this, too, needs to have extent for more than the ctor.
            (cffi:foreign-alloc :int)))
     (setf (cffi:mem-aref &argc :int) (length args))
     (let* ((qapplication
@@ -93,7 +95,7 @@
 
 (defun make-qapplication ()
   (let* ((type (q-meta-type-type "QApplication*"))
-	 (mo (q-meta-type-meta-object-for-type type)))
+         (mo (q-meta-type-meta-object-for-type type)))
     mo))
 
 (defcfun "q_meta_object_class_name" :string
