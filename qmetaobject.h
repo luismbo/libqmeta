@@ -1,12 +1,12 @@
 #ifndef QMETAOBJECT_H
 #define QMETAOBJECT_H
 
-#include "libqmetaobject_global.h"
+#include <QtCore/qglobal.h>
+#include <QMetaObject>
+#include <QMetaMethod>
 
-class LIBQMETAOBJECT_EXPORT qmetaobject
-{
-public:
-    qmetaobject();
-};
+extern "C" {
+
+}
 
 #endif // QMETAOBJECT_H

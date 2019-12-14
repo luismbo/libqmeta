@@ -1,4 +1,4 @@
-QT -= gui
+QT += core gui widgets
 
 TEMPLATE = lib
 DEFINES += LIBQMETAOBJECT_LIBRARY
@@ -20,7 +20,6 @@ SOURCES += \
     qmetaobject.cpp
 
 HEADERS += \
-    libqmetaobject_global.h \
     qmetaobject.h
 
 # Default rules for deployment.
