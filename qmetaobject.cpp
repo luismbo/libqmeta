@@ -701,6 +701,18 @@ const char *q_meta_method_method_signature(QMetaMethod *mm)
     return mm->methodSignature();
 }
 
+extern "C" Q_DECL_EXPORT
+int q_meta_method_parameter_count(QMetaMethod *mm)
+{
+    return mm->parameterCount();
+}
+
+extern "C" Q_DECL_EXPORT
+int q_meta_method_parameter_type(QMetaMethod *mm, int index)
+{
+    return mm->parameterType(index);
+}
+
 /*
  * QMetaProperty
  */
