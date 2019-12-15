@@ -5,8 +5,4 @@
 #include <QMetaObject>
 #include <QMetaMethod>
 
-extern "C" {
-
-}
-
 #endif // QMETAOBJECT_H

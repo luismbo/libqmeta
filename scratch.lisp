@@ -8,11 +8,19 @@
 #+nil
 (progn
   (ql:quickload :cffi)
+
+  (setf (uiop:getenv "LD_LIBRARY_PATH") "/usr/local/Qt-5.14.0/lib")
+  (setf (uiop:getenv "QT_DEBUG_PLUGINS") "1")
+  (cffi:load-foreign-library "/usr/local/Qt-5.14.0/lib/libQt5Widgets.so.5")
+  (cffi:load-foreign-library "/home/luis/src/qt/build-libqmetaobject-Desktop_usr_local_Qt_5_14_0-Release/liblibqmetaobject.so")
+
   (setf (uiop:getenv "PATH")
         (format nil "D:\\opt\\Qt\\5.12.6\\mingw73_64\\bin;~a" (uiop:getenv "PATH")))
   (cffi:load-foreign-library "D:/opt/Qt/5.12.6/mingw73_64/bin/Qt5Cored.dll")
   (cffi:load-foreign-library "D:/opt/Qt/5.12.6/mingw73_64/bin/Qt5Widgetsd.dll")
-  (cffi:load-foreign-library "Z:/src/qt-projects/build-libqmetaobject-Desktop_Qt_5_12_6_MinGW_64_bit-Debug/debug/libqmetaobject.dll"))
+  (cffi:load-foreign-library "Z:/src/qt-projects/build-libqmetaobject-Desktop_Qt_5_12_6_MinGW_64_bit-Debug/debug/libqmetaobject.dll")
+
+  (cffi:foreign-funcall "qVersion" :string))
 
 (define-foreign-library libqmeta
   (t (:default "libqmetaobject")))
@@ -55,48 +63,30 @@
 
 (defvar *qapplication* nil)
 
-#+nil
-(defun make-qapplication (&rest args)
-  (cond (*qapplication*)
-        (t
-         (let ((instance (#_QCoreApplication::instance)))
-           (setf *qapplication*
-                 (if (null-qobject-p instance)
-                     (%make-qapplication (cons "argv0dummy" args))
-                     instance)))
-         *qapplication*)))
-
-#+nil
-(defun %make-qapplication (args &optional (guip t))
-  (unless args
-    (error "argv[0] not specified"))
-  (mapc (lambda (arg) (check-type arg string)) args)
-  (let* ((args (coerce args 'simple-vector))
-         (argv
-           ;; Memory leak: This array must not be freed earlier than the
-           ;; QApplication.  Let's just leak it.
-           (string-vector-to-char** args))
-         (&argc
-           ;; Apparently this, too, needs to have extent for more than the ctor.
-           (cffi:foreign-alloc :int)))
-    (setf (cffi:mem-aref &argc :int) (length args))
-    (let* ((qapplication
-             (if guip
-                 (#_new QApplication &argc argv)
-                 (#_new QCoreApplication &argc argv)))
-           (updated-argc (cffi:mem-aref &argc :int)))
-      (values qapplication
-              (char**-to-string-vector argv updated-argc nil)))))
-
-(defun find-meta-object (type-name)
+(defun find-meta-object (type-name &key (if-does-not-exist :error))
+  (check-type if-does-not-exist (member nil :error))
   (let ((type (q-meta-type-type (format nil "~a*" type-name))))
-    (when (plusp type)
-      (q-meta-type-meta-object-for-type type))))
+    (if (plusp type)
+        (let ((p (q-meta-type-meta-object-for-type type)))
+          (when (and (eq if-does-not-exist :error)
+                     (null-pointer-p p))
+            (error "couldn't find meta object for ~s (type: ~a)"
+                   type-name type))
+          p)
+        (when (eq if-does-not-exist :error)
+          (error "couldn't find type ~s" type-name)))))
 
-(defun make-qapplication ()
-  (let* ((type (q-meta-type-type "QApplication*"))
-         (mo (q-meta-type-meta-object-for-type type)))
-    mo))
+(defcfun "q_meta_make_q_application" :pointer)
+
+(defun qapplication ()
+  (q-meta-make-q-application))
+
+(defun proof-of-concept ()
+  (let* ((app (qapplication))
+         (mo (find-meta-object "QMainWindow"))
+         (window (q-meta-object-new-instance mo 0 (null-pointer) (null-pointer))))
+    (q-meta-object-invoke-method window "show" :direct "void" (null-pointer) 0 (null-pointer) (null-pointer))
+    (q-meta-object-invoke-method app "exec" :direct "void" (null-pointer) 0 (null-pointer) (null-pointer))))
 
 (defcfun "q_meta_object_class_name" :string
   (meta-object :pointer))
@@ -148,7 +138,31 @@
 (defcfun "q_meta_method_method_signature" :string
   (meta-method :pointer))
 
+(defcfun "q_meta_method_parameter_count" :int
+  (meta-method :pointer))
+
+(defcfun "q_meta_method_parameter_type" :int
+  (meta-method :pointer)
+  (index :int))
+
 ;;;; QMetaProperty
 
 (defcfun "q_meta_property_name" :string
   (meta-property :pointer))
+
+
+;;;; Utilities
+
+(defun list-constructors (type-name)
+  (let* ((mo (find-meta-object type-name))
+         (count (q-meta-object-constructor-count mo)))
+    (loop for i below count
+          for constructor = (q-meta-object-constructor mo i)
+          collect (q-meta-method-method-signature constructor))))
+
+(defun list-methods (type-name)
+  (let* ((mo (find-meta-object type-name))
+         (count (q-meta-object-method-count mo)))
+    (loop for i below count
+          for constructor = (q-meta-object-method mo i)
+          collect (q-meta-method-method-signature constructor))))

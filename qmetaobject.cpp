@@ -722,3 +722,32 @@ const char *q_meta_property_name(QMetaProperty *mp)
 {
     return mp->name();
 }
+
+/*
+ * QApplication helper
+ */
+
+class QApplicationOnTheHeap
+{
+    QApplication app;
+    int argc = 1;
+    char *argv[1] = { (char *) "dummy-argv0" };
+
+public:
+    QApplicationOnTheHeap(): app{argc, argv} {}
+    QApplication *data() { return &app; };
+};
+
+extern "C" Q_DECL_EXPORT
+QApplication *q_meta_make_q_application()
+{
+    QApplication *qapp = dynamic_cast<QApplication*>(QCoreApplication::instance());
+
+    if (!qapp) {
+        // memory leak
+        QApplicationOnTheHeap *helper = new QApplicationOnTheHeap();
+        return helper->data();
+    }
+
+    return qapp;
+}
